@@ -27,24 +27,25 @@ pragma solidity >=0.7.0 <0.9.0;
 
 import {Base64} from "base64-sol/base64.sol";
 import "erc721a/contracts/ERC721A.sol";
+import {ERC2981} from "openzeppelin-contracts/token/common/ERC2981.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import "operator-filter-registry-src-DefaultOperatorFilterer.sol";
 
 //tokenURI interface
 interface iTokenURI {
     function tokenURI(uint256 _tokenId) external view returns (string memory);
 }
 
-contract ContractTemplate is Ownable, ERC721A, AccessControl {
-    constructor() ERC721A("ContractTemplate", "TMP") {
+contract SeoriGenerative is DefaultOperatorFilterer, Ownable, ERC721A, AccessControl {
+    constructor() ERC721A("SeoriGenerative", "SEORI") {
         //Role initialization
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _setupRole(MINTER_ROLE, msg.sender);
         _setupRole(AIRDROP_ROLE, msg.sender);
 
         //URI initialization
-        //setBaseURI("https://data.zqn.wtf/sanuqn/metadata/");
         setBaseURI("https://data.zqn.wtf/tereqn/metadata/");
 
         //use single metadata
@@ -71,7 +72,7 @@ contract ContractTemplate is Ownable, ERC721A, AccessControl {
     address public constant withdrawAddress =
         0xddf110763eBc75419A39150821c46a58dDD2d667;
 
-    function withdraw() public payable onlyOwner { //payableを消す？
+    function withdraw() public payable onlyOwner {
         (bool os, ) = payable(withdrawAddress).call{
             value: address(this).balance
         }("");
@@ -83,9 +84,9 @@ contract ContractTemplate is Ownable, ERC721A, AccessControl {
     //
 
     uint256 public cost = 0;
-    uint256 public maxSupply = 5000;
-    uint256 public maxMintAmountPerTransaction = 10;
-    uint256 public publicSaleMaxMintAmountPerAddress = 300;
+    uint16 public constant maxSupply = 5000;
+    uint8 public maxMintAmountPerTransaction = 10;
+    uint8 public publicSaleMaxMintAmountPerAddress = 300;
     bool public paused = true;
 
     bool public onlyAllowlisted = true;
@@ -94,7 +95,7 @@ contract ContractTemplate is Ownable, ERC721A, AccessControl {
 
     //0 : Merkle Tree
     //1 : Mapping
-    uint256 public allowlistType = 0;
+    uint8 public allowlistType = 0;
     bytes32 public merkleRoot;
     uint256 public saleId = 0;
     mapping(uint256 => mapping(address => uint256)) public userMintedAmount;
@@ -396,7 +397,7 @@ contract ContractTemplate is Ownable, ERC721A, AccessControl {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
 
-    function externalMint(address _address, uint256 _amount) external payable { //payableを消す？
+    function externalMint(address _address, uint256 _amount) external payable {
         require(hasRole(MINTER_ROLE, msg.sender), "Caller is not a minter");
         require(
             _nextTokenId() - 1 + _amount <= maxSupply,
@@ -442,7 +443,7 @@ contract ContractTemplate is Ownable, ERC721A, AccessControl {
     function setApprovalForAll(
         address operator,
         bool approved
-    ) public virtual override {
+    ) public virtual override onlyAllowedOperatorApproval(operator) {
         require(isSBT == false, "setApprovalForAll is prohibited");
         super.setApprovalForAll(operator, approved);
     }
@@ -450,7 +451,7 @@ contract ContractTemplate is Ownable, ERC721A, AccessControl {
     function approve(
         address to,
         uint256 tokenId
-    ) public payable virtual override { //payableを消す？
+    ) public payable virtual override onlyAllowedOperatorApproval(operator) {
         require(isSBT == false, "approve is prohibited");
         super.approve(to, tokenId);
     }
@@ -466,3 +467,65 @@ contract ContractTemplate is Ownable, ERC721A, AccessControl {
             ERC721A.supportsInterface(interfaceId);
     }
 }
+
+
+
+
+
+    /**
+     * @dev See {IERC721-transferFrom}.
+     *      In this example the added modifier ensures that the operator is allowed by the OperatorFilterRegistry.
+     */
+    function transferFrom(address from, address to, uint256 tokenId) public override onlyAllowedOperator(from) {
+        super.transferFrom(from, to, tokenId);
+    }
+
+    /**
+     * @dev See {IERC721-safeTransferFrom}.
+     *      In this example the added modifier ensures that the operator is allowed by the OperatorFilterRegistry.
+     */
+    function safeTransferFrom(address from, address to, uint256 tokenId) public override onlyAllowedOperator(from) {
+        super.safeTransferFrom(from, to, tokenId);
+    }
+
+    /**
+     * @dev See {IERC721-safeTransferFrom}.
+     *      In this example the added modifier ensures that the operator is allowed by the OperatorFilterRegistry.
+     */
+    function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory data)
+        public
+        override
+        onlyAllowedOperator(from)
+    {
+        super.safeTransferFrom(from, to, tokenId, data);
+    }
+
+
+
+
+
+
+
+    /**
+     * Returns the auxiliary data for `owner`. (e.g. number of whitelist mint slots used).
+     */
+    function _getAux(address owner) internal view returns (uint64) {
+        return uint64(_packedAddressData[owner] >> _BITPOS_AUX);
+    }
+
+    /**
+     * Sets the auxiliary data for `owner`. (e.g. number of whitelist mint slots used).
+     * If there are multiple variables, please pack them into a uint64.
+     */
+    function _setAux(address owner, uint64 aux) internal virtual {
+        uint256 packed = _packedAddressData[owner];
+        uint256 auxCasted;
+        // Cast `aux` with assembly to avoid redundant masking.
+        assembly {
+            auxCasted := aux
+        }
+        packed = (packed & _BITMASK_AUX_COMPLEMENT) | (auxCasted << _BITPOS_AUX);
+        _packedAddressData[owner] = packed;
+    }
+
+
