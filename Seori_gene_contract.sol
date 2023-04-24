@@ -62,7 +62,7 @@ contract SeoriGenerative is DefaultOperatorFilterer, Ownable, ERC721A, AccessCon
     //
 
     uint256 public cost = 0;
-    uint２５６ public constant maxSupply = 5000;
+    uint256 public constant maxSupply = 5000;
     uint8 public maxMintAmountPerTransaction = 10;
     uint8 public publicSaleMaxMintAmountPerAddress = 300;
     bool public paused = true;
