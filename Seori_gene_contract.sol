@@ -444,7 +444,6 @@ contract SeoriGenerative is DefaultOperatorFilterer, Ownable, ERC721A, AccessCon
             AccessControl.supportsInterface(interfaceId) ||
             ERC721A.supportsInterface(interfaceId);
     }
-}
 
 
 
@@ -506,4 +505,4 @@ contract SeoriGenerative is DefaultOperatorFilterer, Ownable, ERC721A, AccessCon
         _packedAddressData[owner] = packed;
     }
 
-
+}
