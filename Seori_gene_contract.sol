@@ -5,11 +5,12 @@ pragma solidity >=0.7.0 <0.9.0;
 
 import {Base64} from "base64-sol/base64.sol";
 import "erc721a/contracts/ERC721A.sol";
-import {ERC2981} from "openzeppelin-contracts/token/common/ERC2981.sol";
+import {ERC2981} from "openzeppelin/contracts/token/common/ERC2981.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
-import "operator-filter-registry-src-DefaultOperatorFilterer.sol";
+import "operator-filter-registry/src/DefaultOperatorFilterer.sol";
+
 
 //tokenURI interface
 interface iTokenURI {
@@ -24,7 +25,7 @@ contract SeoriGenerative is DefaultOperatorFilterer, Ownable, ERC721A, AccessCon
         _setupRole(AIRDROP_ROLE, msg.sender);
 
         //URI initialization
-        setBaseURI("https://data.zqn.wtf/tereqn/metadata/");
+        setBaseURI("https://arweave.net/9n_zAB5tx8T_ite07X6ePbsaAg1DgwdfpRu2efyx3zU");
 
         //use single metadata
         //setUseSingleMetadata(true);
@@ -63,7 +64,7 @@ contract SeoriGenerative is DefaultOperatorFilterer, Ownable, ERC721A, AccessCon
 
     uint256 public cost = 0;
     uint256 public constant maxSupply = 5000;
-    uint8 public maxMintAmountPerTransaction = 10;
+    uint8 public maxMintAmountPerTransaction = 100;
     uint8 public publicSaleMaxMintAmountPerAddress = 300;
     bool public paused = true;
 
@@ -476,9 +477,6 @@ contract SeoriGenerative is DefaultOperatorFilterer, Ownable, ERC721A, AccessCon
     {
         super.safeTransferFrom(from, to, tokenId, data);
     }
-
-
-
 
 
 
