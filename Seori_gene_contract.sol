@@ -403,21 +403,21 @@ contract SeoriGenerative is DefaultOperatorFilterer, Ownable, ERC721A, AccessCon
     function setIsSBT(bool _state) public onlyOwner {
         isSBT = _state;
     }
-
-    function _beforeTokenTransfers(
-        address from,
-        address to,
-        uint256 startTokenId,
-        uint256 quantity
-    ) internal virtual override {
-        require(
-            isSBT == false ||
-                from == address(0) ||
-                to == address(0x000000000000000000000000000000000000dEaD),
-            "transfer is prohibited"
-        );
-        super._beforeTokenTransfers(from, to, startTokenId, quantity);
-    }
+//SBTの削除部分？？
+    // function _beforeTokenTransfers(
+    //     address from,
+    //     address to,
+    //     uint256 startTokenId,
+    //     uint256 quantity
+    // ) internal virtual override {
+    //     require(
+    //         isSBT == false ||
+    //             from == address(0) ||
+    //             to == address(0x000000000000000000000000000000000000dEaD),
+    //         "transfer is prohibited"
+    //     );
+    //     super._beforeTokenTransfers(from, to, startTokenId, quantity);
+    // }
 
     function setApprovalForAll(
         address operator,
@@ -484,7 +484,7 @@ contract SeoriGenerative is DefaultOperatorFilterer, Ownable, ERC721A, AccessCon
      * Returns the auxiliary data for `owner`. (e.g. number of whitelist mint slots used).
      */
     function _getAux(address owner) internal view returns (uint64) {
-        return uint64(_packedAddressData[owner] >> _BITPOS_AUX);
+        return uint64(_packedAddressData[owner] >> _BITPOS_AUX);//変数 _BITPOS_AUX が定義されていない
     }
 
     /**
@@ -492,14 +492,16 @@ contract SeoriGenerative is DefaultOperatorFilterer, Ownable, ERC721A, AccessCon
      * If there are multiple variables, please pack them into a uint64.
      */
     function _setAux(address owner, uint64 aux) internal virtual {
-        uint256 packed = _packedAddressData[owner];
+        uint256 packed = _packedAddressData[owner];//変数 _packedAddressData が宣言されていない
         uint256 auxCasted;
         // Cast `aux` with assembly to avoid redundant masking.
         assembly {
             auxCasted := aux
         }
         packed = (packed & _BITMASK_AUX_COMPLEMENT) | (auxCasted << _BITPOS_AUX);
-        _packedAddressData[owner] = packed;
+        // _BITPOS_AUX 、 _BITMASK_AUX_COMPLEMENT が定義されていない
+
+        _packedAddressData[owner] = packed;//_packedAddressDataが宣言されていない
     }
 
 }
