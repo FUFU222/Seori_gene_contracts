@@ -5,7 +5,7 @@ pragma solidity >=0.7.0 <0.9.0;
 
 import {Base64} from "base64-sol/base64.sol";
 import "erc721a/contracts/ERC721A.sol";
-import {ERC2981} from "openzeppelin/contracts/token/common/ERC2981.sol";
+import {ERC2981} from "@openzeppelin/contracts/token/common/ERC2981.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
@@ -430,11 +430,10 @@ contract SeoriGenerative is DefaultOperatorFilterer, Ownable, ERC721A, AccessCon
     function approve(
         address to,
         uint256 tokenId
-    ) public payable virtual override onlyAllowedOperatorApproval(operator) {
+    ) public payable virtual override onlyAllowedOperatorApproval(to) {
         require(isSBT == false, "approve is prohibited");
         super.approve(to, tokenId);
     }
-
     //
     // override section
     //
