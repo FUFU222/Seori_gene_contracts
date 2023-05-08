@@ -76,7 +76,7 @@ contract SeoriGenerative is DefaultOperatorFilterer, Ownable, ERC721A, AccessCon
     //1 : Mapping
     uint8 public allowlistType = 0;
     uint16 public saleId = 0;
-    bytes32 public merkleRoot;
+    bytes32 public merkleRoot 0xa5b07db99cc7e790aea5121ef230a1781b181eee17ba26a12a469781c539419a;
     mapping(uint256 => mapping(address => uint256)) public userMintedAmount;
     mapping(uint256 => mapping(address => uint256)) public allowlistUserAmount;
 
