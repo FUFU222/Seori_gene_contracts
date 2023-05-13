@@ -17,7 +17,7 @@ interface ITokenURI {
     function tokenURI(uint256 _tokenId) external view returns (string memory);
 }
 
-contract SeoriGenerative is DefaultOperatorFilterer, Ownable, ERC721A, AccessControl {
+contract SeoriGenerative is ERC2981, DefaultOperatorFilterer, Ownable, ERC721A, AccessControl {
     constructor() ERC721A("SeoriGenerative", "SEORI") {
         //Role initialization
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -339,13 +339,22 @@ contract SeoriGenerative is DefaultOperatorFilterer, Ownable, ERC721A, AccessCon
         require(isSBT == false, "approve is prohibited");
         super.approve(to, tokenId);
     }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // ERC2981 Royalty
+    ///////////////////////////////////////////////////////////////////////////
+    function setDefaultRoyalty(address receiver, uint96 feeNumerator) external onlyOwner {
+        _setDefaultRoyalty(receiver, feeNumerator);
+    }
+
     //
     // override section
     //
     function supportsInterface(
         bytes4 interfaceId
-    ) public view override(ERC721A, AccessControl) returns (bool) {
+    ) public view override(ERC2981, ERC721A, AccessControl) returns (bool) {
         return
+            ERC2981.supportsInterface(interfaceId) ||
             AccessControl.supportsInterface(interfaceId) ||
             ERC721A.supportsInterface(interfaceId);
     }
