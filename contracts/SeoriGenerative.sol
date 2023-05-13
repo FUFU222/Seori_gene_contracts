@@ -31,6 +31,9 @@ contract SeoriGenerative is ERC2981, DefaultOperatorFilterer, Ownable, ERC721A, 
         //setMintCount(false);
         //setPause(false);
         //setMaxSupply(6);
+
+        // Set royalty as 10%
+        _setDefaultRoyalty(withdrawAddress, 1000);
     }
 
     //
