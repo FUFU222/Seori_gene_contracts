@@ -13,7 +13,7 @@ import "operator-filter-registry/src/DefaultOperatorFilterer.sol";
 
 
 //tokenURI interface
-interface iTokenURI {
+interface ITokenURI {
     function tokenURI(uint256 _tokenId) external view returns (string memory);
 }
 
@@ -24,18 +24,8 @@ contract SeoriGenerative is DefaultOperatorFilterer, Ownable, ERC721A, AccessCon
         _setupRole(MINTER_ROLE, msg.sender);
         _setupRole(AIRDROP_ROLE, msg.sender);
 
-        //URI initialization
-        setBaseURI("https://arweave.net/9n_zAB5tx8T_ite07X6ePbsaAg1DgwdfpRu2efyx3zU");
-
-        //use single metadata
-        //setUseSingleMetadata(true);
-        //setMetadataTitle("title");
-        //setMetadataDescription("setumei");
-        //setMetadataAttributes("poap");
-        //setImageURI("https://data.zqn.wtf/sanuqn/images/1.png");//sanuqn
-
         //first mint and burn
-        _safeMint(msg.sender, 5);
+        _mint(msg.sender, 5);
 
         //for test
         //setOnlyAllowlisted(false);
@@ -62,21 +52,21 @@ contract SeoriGenerative is DefaultOperatorFilterer, Ownable, ERC721A, AccessCon
     //mint section
     //
 
-    uint256 public cost = 0;
+    uint256 public cost = 0.001 ether;
     uint256 public constant maxSupply = 5000;
     uint8 public maxMintAmountPerTransaction = 100;
-    uint8 public publicSaleMaxMintAmountPerAddress = 300;
+    uint16 public publicSaleMaxMintAmountPerAddress = 300;
     bool public paused = true;
 
     bool public onlyAllowlisted = true;
     bool public mintCount = true;
-    bool public burnAndMintMode = false;
+    bool public burnAndMintMode;// = false;
 
     //0 : Merkle Tree
     //1 : Mapping
-    uint8 public allowlistType = 0;
-    uint16 public saleId = 0;
-    bytes32 public merkleRoot 0xa5b07db99cc7e790aea5121ef230a1781b181eee17ba26a12a469781c539419a;
+    uint8 public allowlistType;// = 0;
+    uint16 public saleId;// = 0;
+    bytes32 public merkleRoot = 0xa5b07db99cc7e790aea5121ef230a1781b181eee17ba26a12a469781c539419a;
     mapping(uint256 => mapping(address => uint256)) public userMintedAmount;
     mapping(uint256 => mapping(address => uint256)) public allowlistUserAmount;
 
@@ -127,7 +117,7 @@ contract SeoriGenerative is DefaultOperatorFilterer, Ownable, ERC721A, AccessCon
                 ];
             }
         } else {
-            maxMintAmountPerAddress = publicSaleMaxMintAmountPerAddress;
+            maxMintAmountPerAddress = uint256(publicSaleMaxMintAmountPerAddress);
         }
 
         if (mintCount == true) {
@@ -146,7 +136,9 @@ contract SeoriGenerative is DefaultOperatorFilterer, Ownable, ERC721A, AccessCon
             _burn(_burnId);
         }
 
-        _safeMint(msg.sender, _mintAmount);
+        // Under callerIsUser, safeMint wastes gas without meanings.
+        //_safeMint(msg.sender, _mintAmount);
+        _mint(msg.sender, _mintAmount);
     }
 
     bytes32 public constant AIRDROP_ROLE = keccak256("AIRDROP_ROLE");
@@ -187,7 +179,7 @@ contract SeoriGenerative is DefaultOperatorFilterer, Ownable, ERC721A, AccessCon
 
     function setAllowListType(uint256 _type) public onlyOwner {
         require(_type == 0 || _type == 1, "Allow list type error");
-        allowlistType = _type;
+        allowlistType = uint8(_type);
     }
 
     function setAllowlistMapping(
@@ -221,17 +213,19 @@ contract SeoriGenerative is DefaultOperatorFilterer, Ownable, ERC721A, AccessCon
     }
 
     function setSaleId(uint256 _saleId) public onlyOwner {
-        saleId = _saleId;
+        saleId = uint8(_saleId);
     }
 
+    /* maxSupply changed to constant
     function setMaxSupply(uint256 _maxSupply) public onlyOwner {
         maxSupply = _maxSupply;
     }
+    */
 
     function setPublicSaleMaxMintAmountPerAddress(
         uint256 _publicSaleMaxMintAmountPerAddress
     ) public onlyOwner {
-        publicSaleMaxMintAmountPerAddress = _publicSaleMaxMintAmountPerAddress;
+        publicSaleMaxMintAmountPerAddress = uint16(_publicSaleMaxMintAmountPerAddress);
     }
 
     function setCost(uint256 _newCost) public onlyOwner {
@@ -245,7 +239,7 @@ contract SeoriGenerative is DefaultOperatorFilterer, Ownable, ERC721A, AccessCon
     function setMaxMintAmountPerTransaction(
         uint256 _maxMintAmountPerTransaction
     ) public onlyOwner {
-        maxMintAmountPerTransaction = _maxMintAmountPerTransaction;
+        maxMintAmountPerTransaction = uint8(_maxMintAmountPerTransaction);
     }
 
     function setMintCount(bool _state) public onlyOwner {
@@ -253,76 +247,13 @@ contract SeoriGenerative is DefaultOperatorFilterer, Ownable, ERC721A, AccessCon
     }
 
     //
-    //URI section
-    //
-
-    string public baseURI;
-    string public baseExtension = ".json";
-
-    function _baseURI() internal view virtual override returns (string memory) {
-        return baseURI;
-    }
-
-    function setBaseURI(string memory _newBaseURI) public onlyOwner {
-        baseURI = _newBaseURI;
-    }
-
-    function setBaseExtension(
-        string memory _newBaseExtension
-    ) public onlyOwner {
-        baseExtension = _newBaseExtension;
-    }
-
-    //
     //interface metadata
     //
 
-    iTokenURI public interfaceOfTokenURI;
-    bool public useInterfaceMetadata = false;
+    ITokenURI public interfaceOfTokenURI;
 
     function setInterfaceOfTokenURI(address _address) public onlyOwner {
-        interfaceOfTokenURI = iTokenURI(_address);
-    }
-
-    function setUseInterfaceMetadata(
-        bool _useInterfaceMetadata
-    ) public onlyOwner {
-        useInterfaceMetadata = _useInterfaceMetadata;
-    }
-
-    //
-    //single metadata
-    //
-
-    bool public useSingleMetadata = false;
-    string public imageURI;
-    string public metadataTitle;
-    string public metadataDescription;
-    string public metadataAttributes;
-
-    //single image metadata
-    function setUseSingleMetadata(bool _useSingleMetadata) public onlyOwner {
-        useSingleMetadata = _useSingleMetadata;
-    }
-
-    function setMetadataTitle(string memory _metadataTitle) public onlyOwner {
-        metadataTitle = _metadataTitle;
-    }
-
-    function setMetadataDescription(
-        string memory _metadataDescription
-    ) public onlyOwner {
-        metadataDescription = _metadataDescription;
-    }
-
-    function setMetadataAttributes(
-        string memory _metadataAttributes
-    ) public onlyOwner {
-        metadataAttributes = _metadataAttributes;
-    }
-
-    function setImageURI(string memory _newImageURI) public onlyOwner {
-        imageURI = _newImageURI;
+        interfaceOfTokenURI = ITokenURI(_address);
     }
 
     //
@@ -332,37 +263,11 @@ contract SeoriGenerative is DefaultOperatorFilterer, Ownable, ERC721A, AccessCon
     function tokenURI(
         uint256 tokenId
     ) public view override returns (string memory) {
-        if (useInterfaceMetadata == true) {
+        _exists(tokenId);
+        if (address(interfaceOfTokenURI) != address(0)) {
             return interfaceOfTokenURI.tokenURI(tokenId);
         }
-        if (useSingleMetadata == true) {
-            return
-                string(
-                    abi.encodePacked(
-                        "data:application/json;base64,",
-                        Base64.encode(
-                            abi.encodePacked(
-                                "{"
-                                '"name":"',
-                                metadataTitle,
-                                '",',
-                                '"description":"',
-                                metadataDescription,
-                                '",',
-                                '"image": "',
-                                imageURI,
-                                '",',
-                                '"attributes":[{"trait_type":"type","value":"',
-                                metadataAttributes,
-                                '"}]',
-                                "}"
-                            )
-                        )
-                    )
-                );
-        }
-        return
-            string(abi.encodePacked(ERC721A.tokenURI(tokenId), baseExtension));
+        return "";
     }
 
     function _startTokenId() internal view virtual override returns (uint256) {
@@ -403,21 +308,21 @@ contract SeoriGenerative is DefaultOperatorFilterer, Ownable, ERC721A, AccessCon
     function setIsSBT(bool _state) public onlyOwner {
         isSBT = _state;
     }
-//SBTの削除部分？？
-    // function _beforeTokenTransfers(
-    //     address from,
-    //     address to,
-    //     uint256 startTokenId,
-    //     uint256 quantity
-    // ) internal virtual override {
-    //     require(
-    //         isSBT == false ||
-    //             from == address(0) ||
-    //             to == address(0x000000000000000000000000000000000000dEaD),
-    //         "transfer is prohibited"
-    //     );
-    //     super._beforeTokenTransfers(from, to, startTokenId, quantity);
-    // }
+    
+    function _beforeTokenTransfers(
+        address from,
+        address to,
+        uint256 startTokenId,
+        uint256 quantity
+    ) internal virtual override {
+        require(
+            isSBT == false ||
+                from == address(0) ||
+                to == address(0x000000000000000000000000000000000000dEaD),
+            "transfer is prohibited"
+        );
+        super._beforeTokenTransfers(from, to, startTokenId, quantity);
+    }
 
     function setApprovalForAll(
         address operator,
@@ -445,15 +350,11 @@ contract SeoriGenerative is DefaultOperatorFilterer, Ownable, ERC721A, AccessCon
             ERC721A.supportsInterface(interfaceId);
     }
 
-
-
-
-
     /**
      * @dev See {IERC721-transferFrom}.
      *      In this example the added modifier ensures that the operator is allowed by the OperatorFilterRegistry.
      */
-    function transferFrom(address from, address to, uint256 tokenId) public override onlyAllowedOperator(from) {
+    function transferFrom(address from, address to, uint256 tokenId) public payable override onlyAllowedOperator(from) {
         super.transferFrom(from, to, tokenId);
     }
 
@@ -461,7 +362,7 @@ contract SeoriGenerative is DefaultOperatorFilterer, Ownable, ERC721A, AccessCon
      * @dev See {IERC721-safeTransferFrom}.
      *      In this example the added modifier ensures that the operator is allowed by the OperatorFilterRegistry.
      */
-    function safeTransferFrom(address from, address to, uint256 tokenId) public override onlyAllowedOperator(from) {
+    function safeTransferFrom(address from, address to, uint256 tokenId) public payable override onlyAllowedOperator(from) {
         super.safeTransferFrom(from, to, tokenId);
     }
 
@@ -471,37 +372,12 @@ contract SeoriGenerative is DefaultOperatorFilterer, Ownable, ERC721A, AccessCon
      */
     function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory data)
         public
+        payable
         override
         onlyAllowedOperator(from)
     {
         super.safeTransferFrom(from, to, tokenId, data);
     }
 
-
-
-
-    /**
-     * Returns the auxiliary data for `owner`. (e.g. number of whitelist mint slots used).
-     */
-    function _getAux(address owner) internal view returns (uint64) {
-        return uint64(_packedAddressData[owner] >> _BITPOS_AUX);//変数 _BITPOS_AUX が定義されていない
-    }
-
-    /**
-     * Sets the auxiliary data for `owner`. (e.g. number of whitelist mint slots used).
-     * If there are multiple variables, please pack them into a uint64.
-     */
-    function _setAux(address owner, uint64 aux) internal virtual {
-        uint256 packed = _packedAddressData[owner];//変数 _packedAddressData が宣言されていない
-        uint256 auxCasted;
-        // Cast `aux` with assembly to avoid redundant masking.
-        assembly {
-            auxCasted := aux
-        }
-        packed = (packed & _BITMASK_AUX_COMPLEMENT) | (auxCasted << _BITPOS_AUX);
-        // _BITPOS_AUX 、 _BITMASK_AUX_COMPLEMENT が定義されていない
-
-        _packedAddressData[owner] = packed;//_packedAddressDataが宣言されていない
-    }
 
 }

@@ -1,3 +1,18 @@
 [submodule "lib/forge-std"]
 	path = lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
+[submodule ".deps/npm/openzeppelin-contracts"]
+	path = .deps/npm/openzeppelin-contracts
+	url = https://github.com/openzeppelin/openzeppelin-contracts
+[submodule "lib/@openzeppelin"]
+	path = lib/@openzeppelin
+	url = https://github.com/openzeppelin/openzeppelin-contracts
+[submodule "lib/openzeppelin-contracts"]
+	path = lib/openzeppelin-contracts
+	url = https://github.com/openzeppelin/openzeppelin-contracts
+[submodule ".deps/npm/operator-filter-registry"]
+	path = .deps/npm/operator-filter-registry
+	url = https://github.com/projectopensea/operator-filter-registry
+[submodule "lib/operator-filter-registry"]
+	path = lib/operator-filter-registry
+	url = https://github.com/projectopensea/operator-filter-registry

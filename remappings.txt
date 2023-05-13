@@ -1,0 +1,8 @@
+ds-test/=lib/forge-std/lib/ds-test/src/
+forge-std/=lib/forge-std/src/
+@openzeppelin/=lib/openzeppelin-contracts/
+erc721a/=.deps/npm/erc721a/
+base64-sol/=.deps/npm/base64-sol/
+operator-filter-registry/=lib/operator-filter-registry/
+
+contracts/=contracts/
