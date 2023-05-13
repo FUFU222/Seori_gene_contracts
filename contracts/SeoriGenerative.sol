@@ -100,7 +100,8 @@ contract SeoriGenerative is ERC2981, DefaultOperatorFilterer, Ownable, ERC721A, 
         uint256 _burnId
     ) public payable callerIsUser {
         require(!paused, "the contract is paused");
-        require(0 < _mintAmount, "need to mint at least 1 NFT");
+        // Double check
+        // require(0 < _mintAmount, "need to mint at least 1 NFT");
         require(
             _mintAmount <= maxMintAmountPerTransaction,
             "max mint amount per session exceeded"
