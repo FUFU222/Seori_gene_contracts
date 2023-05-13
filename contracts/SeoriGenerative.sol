@@ -3,7 +3,6 @@
 
 pragma solidity >=0.7.0 <0.9.0;
 
-import {Base64} from "base64-sol/base64.sol";
 import "erc721a/contracts/ERC721A.sol";
 import {ERC2981} from "@openzeppelin/contracts/token/common/ERC2981.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
@@ -62,6 +61,8 @@ contract SeoriGenerative is ERC2981, DefaultOperatorFilterer, Ownable, ERC721A, 
     bool public mintCount = true;
     bool public burnAndMintMode;// = false;
 
+    bool public isSBT = false;
+
     //0 : Merkle Tree
     //1 : Mapping
     uint8 public allowlistType;// = 0;
@@ -70,12 +71,28 @@ contract SeoriGenerative is ERC2981, DefaultOperatorFilterer, Ownable, ERC721A, 
     mapping(uint256 => mapping(address => uint256)) public userMintedAmount;
     mapping(uint256 => mapping(address => uint256)) public allowlistUserAmount;
 
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
+    bytes32 public constant AIRDROP_ROLE = keccak256("AIRDROP_ROLE");
+
+    ITokenURI public interfaceOfTokenURI;
+
     modifier callerIsUser() {
         require(tx.origin == msg.sender, "The caller is another contract.");
         _;
     }
 
-    //mint with merkle tree
+    ///////////////////////////////////////////////////////////////////////////
+    // Override internal mint function to restrict supply
+    ///////////////////////////////////////////////////////////////////////////
+    function _mint(address to, uint256 quantity) internal virtual override {
+        if (totalSupply() + quantity > maxSupply) revert ("max NFT limit exceeded");
+        super._mint(to, quantity);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Mint function for sale
+    ///////////////////////////////////////////////////////////////////////////
     function mint(
         uint256 _mintAmount,
         uint256 _maxMintAmount,
@@ -88,10 +105,12 @@ contract SeoriGenerative is ERC2981, DefaultOperatorFilterer, Ownable, ERC721A, 
             _mintAmount <= maxMintAmountPerTransaction,
             "max mint amount per session exceeded"
         );
+        /* change check supply in _mint()
         require(
-            _nextTokenId() - 1 + _mintAmount <= maxSupply,
+            _nextTokenId() + _mintAmount <= maxSupply,
             "max NFT limit exceeded"
         );
+        */
         require(cost * _mintAmount <= msg.value, "insufficient funds");
 
         uint256 maxMintAmountPerAddress;
@@ -141,7 +160,6 @@ contract SeoriGenerative is ERC2981, DefaultOperatorFilterer, Ownable, ERC721A, 
         _mint(msg.sender, _mintAmount);
     }
 
-    bytes32 public constant AIRDROP_ROLE = keccak256("AIRDROP_ROLE");
 
     function airdropMint(
         address[] calldata _airdropAddresses,
@@ -246,19 +264,13 @@ contract SeoriGenerative is ERC2981, DefaultOperatorFilterer, Ownable, ERC721A, 
         mintCount = _state;
     }
 
-    //
-    //interface metadata
-    //
-
-    ITokenURI public interfaceOfTokenURI;
+    ///////////////////////////////////////////////////////////////////////////
+    // tokenURI Descriptor
+    ///////////////////////////////////////////////////////////////////////////
 
     function setInterfaceOfTokenURI(address _address) public onlyOwner {
         interfaceOfTokenURI = ITokenURI(_address);
     }
-
-    //
-    //token URI
-    //
 
     function tokenURI(
         uint256 tokenId
@@ -270,23 +282,26 @@ contract SeoriGenerative is ERC2981, DefaultOperatorFilterer, Ownable, ERC721A, 
         return "";
     }
 
+    ///////////////////////////////////////////////////////////////////////////
+    // ERC721A set start TokenID
+    ///////////////////////////////////////////////////////////////////////////
+
     function _startTokenId() internal view virtual override returns (uint256) {
         return 1;
     }
 
-    //
-    //burnin' section
-    //
-
-    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
-    bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
+    ///////////////////////////////////////////////////////////////////////////
+    // external Mint / Burn function 
+    ///////////////////////////////////////////////////////////////////////////
 
     function externalMint(address _address, uint256 _amount) external payable {
         require(hasRole(MINTER_ROLE, msg.sender), "Caller is not a minter");
+        /*
         require(
             _nextTokenId() - 1 + _amount <= maxSupply,
             "max NFT limit exceeded"
         );
+        */
         _safeMint(_address, _amount);
     }
 
@@ -294,16 +309,15 @@ contract SeoriGenerative is ERC2981, DefaultOperatorFilterer, Ownable, ERC721A, 
         require(hasRole(BURNER_ROLE, msg.sender), "Caller is not a burner");
         for (uint256 i = 0; i < _burnTokenIds.length; i++) {
             uint256 tokenId = _burnTokenIds[i];
-            require(msg.sender == ownerOf(tokenId), "Owner is different");
+            // For future extension, comment out the following check since it restricts burning byself. 
+            // require(msg.sender == ownerOf(tokenId), "Owner is different");
             _burn(tokenId);
         }
     }
 
-    //
-    //sbt section
-    //
-
-    bool public isSBT = false;
+    ///////////////////////////////////////////////////////////////////////////
+    // SBTizer 
+    ///////////////////////////////////////////////////////////////////////////
 
     function setIsSBT(bool _state) public onlyOwner {
         isSBT = _state;
@@ -347,9 +361,9 @@ contract SeoriGenerative is ERC2981, DefaultOperatorFilterer, Ownable, ERC721A, 
         _setDefaultRoyalty(receiver, feeNumerator);
     }
 
-    //
-    // override section
-    //
+    ///////////////////////////////////////////////////////////////////////////
+    // ERC165 Override
+    ///////////////////////////////////////////////////////////////////////////
     function supportsInterface(
         bytes4 interfaceId
     ) public view override(ERC2981, ERC721A, AccessControl) returns (bool) {
@@ -359,6 +373,9 @@ contract SeoriGenerative is ERC2981, DefaultOperatorFilterer, Ownable, ERC721A, 
             ERC721A.supportsInterface(interfaceId);
     }
 
+    ///////////////////////////////////////////////////////////////////////////
+    // override transfer functions
+    ///////////////////////////////////////////////////////////////////////////
     /**
      * @dev See {IERC721-transferFrom}.
      *      In this example the added modifier ensures that the operator is allowed by the OperatorFilterRegistry.
