@@ -16,3 +16,6 @@
 [submodule "lib/operator-filter-registry"]
 	path = lib/operator-filter-registry
 	url = https://github.com/projectopensea/operator-filter-registry
+[submodule "lib/contractallowlist"]
+	path = lib/contractallowlist
+	url = https://github.com/masataka-eth/contractallowlist

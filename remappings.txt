@@ -4,5 +4,6 @@ forge-std/=lib/forge-std/src/
 erc721a/=.deps/npm/erc721a/
 base64-sol/=.deps/npm/base64-sol/
 operator-filter-registry/=lib/operator-filter-registry/
+contract-allow-list/=lib/contractallowlist/
 
 contracts/=contracts/

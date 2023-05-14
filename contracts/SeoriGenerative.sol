@@ -9,14 +9,14 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "operator-filter-registry/src/DefaultOperatorFilterer.sol";
-
+import "./AntiScam/RestrictApprove/RestrictApprove.sol";
 
 //tokenURI interface
 interface ITokenURI {
     function tokenURI(uint256 _tokenId) external view returns (string memory);
 }
 
-contract SeoriGenerative is ERC2981, DefaultOperatorFilterer, Ownable, ERC721A, AccessControl {
+contract SeoriGenerative is ERC2981, DefaultOperatorFilterer, Ownable, ERC721A, AccessControl, RestrictApprove {
     constructor() ERC721A("SeoriGenerative", "SEORI") {
         //Role initialization
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -34,14 +34,19 @@ contract SeoriGenerative is ERC2981, DefaultOperatorFilterer, Ownable, ERC721A, 
 
         // Set royalty as 10%
         _setDefaultRoyalty(withdrawAddress, 1000);
+
+        // Initialize RestrictApprove
+        // To save deployment size, not use initializerAntiScam and initialize directly.
+        //__RestrictApprove_init();
+        _setCALLevel(1);
+        _setRestrictEnabled(true);
+        _setCAL(0xdbaa28cBe70aF04EbFB166b1A3E8F8034e5B9FC7);//Ethereum mainnet proxy
+        //_setCAL(0xb506d7BbE23576b8AAf22477cd9A7FDF08002211);//Goerli testnet proxy
     }
 
-    //
-    //withdraw section
-    //
-
-    address public constant withdrawAddress =
-        0xddf110763eBc75419A39150821c46a58dDD2d667;
+    ///////////////////////////////////////////////////////////////////////////
+    // Withdraw function
+    ///////////////////////////////////////////////////////////////////////////
 
     function withdraw() public payable onlyOwner {
         (bool os, ) = payable(withdrawAddress).call{
@@ -50,12 +55,18 @@ contract SeoriGenerative is ERC2981, DefaultOperatorFilterer, Ownable, ERC721A, 
         require(os);
     }
 
-    //
-    //mint section
-    //
+    ///////////////////////////////////////////////////////////////////////////
+    // Variables and Constants
+    ///////////////////////////////////////////////////////////////////////////
+
+    address public constant withdrawAddress =
+        0xddf110763eBc75419A39150821c46a58dDD2d667;
+    uint256 public constant maxSupply = 5000;
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
+    bytes32 public constant AIRDROP_ROLE = keccak256("AIRDROP_ROLE");
 
     uint256 public cost = 0.001 ether;
-    uint256 public constant maxSupply = 5000;
     uint8 public maxMintAmountPerTransaction = 100;
     uint16 public publicSaleMaxMintAmountPerAddress = 300;
     bool public paused = true;
@@ -73,10 +84,6 @@ contract SeoriGenerative is ERC2981, DefaultOperatorFilterer, Ownable, ERC721A, 
     bytes32 public merkleRoot = 0xa5b07db99cc7e790aea5121ef230a1781b181eee17ba26a12a469781c539419a;
     mapping(uint256 => mapping(address => uint256)) public userMintedAmount;
     mapping(uint256 => mapping(address => uint256)) public allowlistUserAmount;
-
-    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
-    bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
-    bytes32 public constant AIRDROP_ROLE = keccak256("AIRDROP_ROLE");
 
     ITokenURI public interfaceOfTokenURI;
 
@@ -320,6 +327,48 @@ contract SeoriGenerative is ERC2981, DefaultOperatorFilterer, Ownable, ERC721A, 
     }
 
     ///////////////////////////////////////////////////////////////////////////
+    // IERC721RestrictApprove Override setter functions
+    ///////////////////////////////////////////////////////////////////////////
+
+    /**
+     * @dev Set CAL Level.
+     */
+    function setCALLevel(uint256 level) external onlyOwner {
+        _setCALLevel(level);
+    }
+
+    /**
+     * @dev Set `calAddress` as the new proxy of the contract allow list.
+     */
+    function setCAL(address calAddress) external onlyOwner {
+        _setCAL(calAddress);
+    }
+
+    /**
+     * @dev Add `transferer` to local contract allow list.
+     */
+    function addLocalContractAllowList(address transferer) external onlyOwner {
+        _addLocalContractAllowList(transferer);
+    }
+
+    /**
+     * @dev Remove `transferer` from local contract allow list.
+     */
+    function removeLocalContractAllowList(address transferer) external onlyOwner {
+        _removeLocalContractAllowList(transferer);
+    }
+
+    /**
+     * @dev Set which the restriction by CAL is enabled.
+     */
+    function setRestrictEnabled(bool value)
+        external
+        onlyOwner
+    {
+        _setRestrictEnabled(value);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
     // SBTizer 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -327,12 +376,12 @@ contract SeoriGenerative is ERC2981, DefaultOperatorFilterer, Ownable, ERC721A, 
         isSBT = _state;
     }
     
-    function _beforeTokenTransfers(
-        address from,
-        address to,
-        uint256 startTokenId,
-        uint256 quantity
-    ) internal virtual override {
+    function _beforeTokenTransfers(address from, address to, uint256 startTokenId, uint256 quantity) 
+        internal 
+        virtual 
+        override
+        onlyTransferable(from, to, startTokenId, quantity)
+    {
         require(
             isSBT == false ||
                 from == address(0) ||
@@ -342,18 +391,25 @@ contract SeoriGenerative is ERC2981, DefaultOperatorFilterer, Ownable, ERC721A, 
         super._beforeTokenTransfers(from, to, startTokenId, quantity);
     }
 
-    function setApprovalForAll(
-        address operator,
-        bool approved
-    ) public virtual override onlyAllowedOperatorApproval(operator) {
+    function setApprovalForAll(address operator, bool approved)
+        public
+        virtual
+        override
+        onlyAllowedOperatorApproval(operator)
+        onlyWalletApprovable(operator, msg.sender, approved)
+    {
         require(isSBT == false, "setApprovalForAll is prohibited");
         super.setApprovalForAll(operator, approved);
     }
 
-    function approve(
-        address to,
-        uint256 tokenId
-    ) public payable virtual override onlyAllowedOperatorApproval(to) {
+    function approve(address to, uint256 tokenId) 
+        public 
+        payable 
+        virtual 
+        override 
+        onlyAllowedOperatorApproval(to) 
+        onlyTokenApprovable(to, tokenId)
+    {
         require(isSBT == false, "approve is prohibited");
         super.approve(to, tokenId);
     }

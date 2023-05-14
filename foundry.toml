@@ -2,7 +2,7 @@
 src = "contracts"
 out = "out"
 #libs = ["lib", ".deps/npm"]
-#libs = ["lib"]
+libs = ["lib"]
 
 solc_version = '0.8.19'
 auto_detect_solc = false
@@ -16,6 +16,7 @@ remappings = [
     "erc721a=.deps/npm/erc721a/",
     "base64-sol=.deps/npm/base64-sol/",
     "operator-filter-registry/=lib/operator-filter-registry/",
+    "contract-allow-list/=lib/contractallowlist/",
 ]
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
